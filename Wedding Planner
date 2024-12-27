@@ -1,0 +1,171 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; 
+
+void main() {
+  runApp(WeddingPlannerApp());
+}
+
+class WeddingPlannerApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Wedding Planner',
+      theme: ThemeData(
+        primarySwatch: Colors.pink,
+      ),
+      home: HomePage(),
+    );
+  }
+}
+
+class Task {
+  String title;
+  String description;
+  DateTime dueDate;
+  bool isCompleted;
+
+  Task({required this.title, required this.description, required this.dueDate, this.isCompleted = false});
+}
+
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  List<Task> tasks = [];
+
+  void addTask(Task task) {
+    setState(() {
+      tasks.add(task);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Wedding Planner")),
+      body: ListView.builder(
+        itemCount: tasks.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(tasks[index].title),
+            subtitle: Text(DateFormat('yyyy-MM-dd HH:mm').format(tasks[index].dueDate)), 
+            trailing: Checkbox(
+              value: tasks[index].isCompleted,
+              onChanged: (bool? value) {
+                setState(() {
+                  tasks[index].isCompleted = value!;
+                });
+              },
+            ),
+            onTap: () {
+              // Navigate to task details screen
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddTaskPage(onAddTask: addTask)),
+          );
+        },
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class AddTaskPage extends StatefulWidget {
+  final Function(Task) onAddTask;
+
+  AddTaskPage({required this.onAddTask});
+
+  @override
+  _AddTaskPageState createState() => _AddTaskPageState();
+}
+
+class _AddTaskPageState extends State<AddTaskPage> {
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  DateTime selectedDate = DateTime.now();
+
+  void selectDate(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (pickedDate != null && pickedDate != selectedDate) {
+      setState(() {
+        selectedDate = pickedDate;
+      });
+      selectTime(context); 
+    }
+  }
+
+  void selectTime(BuildContext context) async {
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(selectedDate),
+    );
+    if (pickedTime != null) {
+      setState(() {
+        selectedDate = DateTime(
+          selectedDate.year,
+          selectedDate.month,
+          selectedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Add Task")),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: InputDecoration(labelText: "Title"),
+            ),
+            TextField(
+              controller: descriptionController,
+              decoration: InputDecoration(labelText: "Description"),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Date: ${DateFormat('yyyy-MM-dd HH:mm').format(selectedDate)}"), 
+                ElevatedButton(
+                  onPressed: () => selectDate(context),
+                  child: Text("Select Date"),
+                ),
+              ],
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final task = Task(
+                  title: titleController.text,
+                  description: descriptionController.text,
+                  dueDate: selectedDate,
+                );
+                widget.onAddTask(task);
+                Navigator.pop(context);
+              },
+              child: Text("Save"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
